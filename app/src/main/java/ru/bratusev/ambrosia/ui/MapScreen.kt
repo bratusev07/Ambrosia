@@ -10,13 +10,19 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,15 +31,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
-import coil.ImageLoader
-import coil.compose.rememberImagePainter
+import coil.compose.rememberAsyncImagePainter
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
@@ -70,6 +78,7 @@ private val mapStyle = MapStyleOptions(
         """.trimIndent()
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("CoroutineCreationDuringComposition")
 @Composable
 fun MapScreen() {
@@ -129,30 +138,15 @@ fun MapScreen() {
         )
 
         if (selectedMarker != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clickable { selectedMarker = null }
-                    .background(Color.Black.copy(alpha = 0.3f))
-            ) {
-                Column(
-                    Modifier
-                        .wrapContentSize()
-                        .align(Alignment.Center)
-                        .padding(20.dp)
-                        .background(Color.White)
-                ) {
-                    LoadImageFromUrl(
-                        selectedMarker?.getImage,
-                        Modifier.align(Alignment.CenterHorizontally).padding(10.dp)
-                    )
-                    Text(
-                        selectedMarker?.description.orEmpty(),
-                        modifier = Modifier.fillMaxWidth().padding(10.dp),
-                        textAlign = TextAlign.Center
-                    )
+            ModalBottomSheet(
+                onDismissRequest = { selectedMarker = null },
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                content = {
+                    selectedMarker?.let {
+                        MarkerBottomSheet(marker = it, modifier = Modifier)
+                    }
                 }
-            }
+            )
         }
 
         if (showDialog) {
@@ -167,6 +161,47 @@ fun MapScreen() {
         }
     }
 }
+
+@Composable
+fun MarkerBottomSheet(
+    marker: Markers,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+        Image(
+            painter = rememberAsyncImagePainter(
+                model = marker.getImage,
+                error = painterResource(R.drawable.ic_launcher_foreground)
+            ),
+            contentDescription = null,
+            modifier = Modifier
+                .size(300.dp, 400.dp)
+                .padding(start = 35.dp, end = 35.dp, top = 10.dp)
+                .clip(RoundedCornerShape(24.dp)),
+            contentScale = ContentScale.Crop
+        )
+
+        Text(
+            text = marker.street.toString(),
+            modifier = Modifier
+                .padding(horizontal = 15.dp, vertical = 25.dp)
+                .fillMaxWidth(),
+            fontSize = 18.sp,
+            color = Color(0xFF1F1F1F),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(34.dp))
+    }
+}
+
 
 object MarkerIconManager {
     private var markerIcon: BitmapDescriptor? = null
@@ -185,26 +220,4 @@ object MarkerIconManager {
         }
         return markerIcon
     }
-}
-
-@Composable
-fun LoadImageFromUrl(imageUrl: String?, modifier: Modifier) {
-    val context = LocalContext.current
-    val imageLoader = remember { ImageLoader(context) }
-
-    val painter = rememberImagePainter(
-        data = imageUrl,
-        imageLoader = imageLoader,
-        builder = {
-            crossfade(true)
-            placeholder(R.drawable.ic_launcher_background)
-            error(R.drawable.ic_launcher_foreground)
-        }
-    )
-
-    Image(
-        painter = painter,
-        contentDescription = null,
-        modifier = modifier
-    )
 }

@@ -1,4 +1,5 @@
 import org.gradle.kotlin.dsl.implementation
+import org.jetbrains.kotlin.gradle.idea.proto.com.google.protobuf.SourceCodeInfoKt.location
 
 plugins {
     alias(libs.plugins.android.application)
@@ -78,6 +79,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx.v261)
     implementation(libs.androidx.activity.compose.v172)
     implementation(libs.play.services.maps)
+
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 
     // Google map
     implementation(libs.com.google.maps.android.maps.compose5)
